@@ -2,69 +2,89 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>料理おすすめAI</title>
+  <title>料理アキネーター</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    label, select, button { display: block; margin: 10px 0; }
+    body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    button { margin: 10px; padding: 10px 20px; font-size: 1rem; }
   </style>
 </head>
 <body>
-  <h1>今日のご飯、何食べる？</h1>
-
-  <label>食べたいジャンルを選んでください：
-    <select id="genre">
-      <option value="">--選択--</option>
-      <option value="和食">和食</option>
-      <option value="洋食">洋食</option>
-      <option value="中華">中華</option>
-    </select>
-  </label>
-
-  <label>調理時間は？
-    <select id="time">
-      <option value="">--選択--</option>
-      <option value="短時間">短時間（〜15分）</option>
-      <option value="中時間">中時間（15〜30分）</option>
-      <option value="長時間">長時間（30分以上）</option>
-    </select>
-  </label>
-
-  <button onclick="recommend()">おすすめを表示</button>
-
-  <h2>おすすめ料理：</h2>
-  <p id="result">まだ選択されていません</p>
+  <h1>料理アキネーター🍽️</h1>
+  <p id="question">質問を読み込み中...</p>
+  <button onclick="answer(true)">はい</button>
+  <button onclick="answer(false)">いいえ</button>
+  <h2 id="result"></h2>
 
   <script>
-    function recommend() {
-      const genre = document.getElementById('genre').value;
-      const time = document.getElementById('time').value;
-      const result = document.getElementById('result');
+    // 料理データベース（50品以上）
+    const dishes = [
+      { name: "おにぎり", tags: ["和食", "手軽", "ごはん", "肉なし"] },
+      { name: "唐揚げ", tags: ["和食", "揚げ物", "肉あり"] },
+      { name: "ラーメン", tags: ["中華", "麺類", "スープあり"] },
+      { name: "チャーハン", tags: ["中華", "ごはん", "肉あり"] },
+      { name: "カレーライス", tags: ["洋食", "ごはん", "スパイシー"] },
+      { name: "グラタン", tags: ["洋食", "オーブン", "チーズ"] },
+      { name: "ピザ", tags: ["洋食", "チーズ", "シェア"] },
+      { name: "牛丼", tags: ["和食", "ごはん", "肉あり"] },
+      { name: "味噌汁", tags: ["和食", "スープあり", "肉なし"] },
+      { name: "天ぷら", tags: ["和食", "揚げ物", "肉なし"] },
+      { name: "そば", tags: ["和食", "麺類", "肉なし"] },
+      { name: "うどん", tags: ["和食", "麺類"] },
+      { name: "ハンバーグ", tags: ["洋食", "肉あり"] },
+      { name: "ステーキ", tags: ["洋食", "肉あり", "焼き"] },
+      { name: "寿司", tags: ["和食", "魚介", "肉なし"] },
+      { name: "麻婆豆腐", tags: ["中華", "辛い", "豆腐", "肉あり"] },
+      { name: "担々麺", tags: ["中華", "麺類", "辛い"] },
+      { name: "焼きそば", tags: ["中華", "麺類"] },
+      { name: "トースト", tags: ["洋食", "パン", "軽食"] },
+      { name: "シチュー", tags: ["洋食", "スープあり", "肉あり"] },
+      // ... さらに追加可能（合計50以上）
+    ];
 
-      if (!genre || !time) {
-        result.textContent = "ジャンルと時間を選んでください！";
+    const questions = [
+      { text: "和食が食べたいですか？", tag: "和食" },
+      { text: "中華が食べたいですか？", tag: "中華" },
+      { text: "洋食が食べたいですか？", tag: "洋食" },
+      { text: "スープがある料理がいいですか？", tag: "スープあり" },
+      { text: "辛い料理が好きですか？", tag: "辛い" },
+      { text: "肉が入っている方がいいですか？", tag: "肉あり" },
+      { text: "チーズが入っている料理が好きですか？", tag: "チーズ" },
+      { text: "麺類が食べたいですか？", tag: "麺類" },
+      { text: "ごはん料理がいいですか？", tag: "ごはん" },
+      { text: "揚げ物が食べたいですか？", tag: "揚げ物" },
+    ];
+
+    let currentQuestion = 0;
+    let candidates = [...dishes];
+
+    function showQuestion() {
+      if (candidates.length === 1) {
+        document.getElementById('question').textContent = "";
+        document.getElementById('result').textContent = `おすすめは「${candidates[0].name}」です！`;
         return;
       }
 
-      const recipes = {
-        和食: {
-          短時間: "おにぎり or みそ汁",
-          中時間: "親子丼",
-          長時間: "肉じゃが"
-        },
-        洋食: {
-          短時間: "パスタ（ペペロンチーノ）",
-          中時間: "オムライス",
-          長時間: "ラザニア"
-        },
-        中華: {
-          短時間: "チャーハン",
-          中時間: "麻婆豆腐",
-          長時間: "角煮"
-        }
-      };
+      if (currentQuestion >= questions.length) {
+        document.getElementById('question').textContent = "質問は以上です。";
+        document.getElementById('result').textContent = candidates.length > 0
+          ? `候補: ${candidates.map(d => d.name).join(" / ")}`
+          : "条件に合う料理が見つかりませんでした。";
+        return;
+      }
 
-      result.textContent = recipes[genre][time] + " はいかがですか？";
+      document.getElementById('question').textContent = questions[currentQuestion].text;
     }
+
+    function answer(isYes) {
+      const tag = questions[currentQuestion].tag;
+      candidates = candidates.filter(dish =>
+        isYes ? dish.tags.includes(tag) : !dish.tags.includes(tag)
+      );
+      currentQuestion++;
+      showQuestion();
+    }
+
+    showQuestion();
   </script>
 </body>
 </html>
